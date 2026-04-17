@@ -1,0 +1,71 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: users
+// Document ID: {userId}
+// Fields:
+//   - uid: string (required) - User's unique ID
+//   - email: string (required) - User's email
+//   - displayName: string (optional) - User's display name
+//   - photoURL: string (optional) - User's photo URL
+//
+// Collection: study_materials
+// Document ID: {materialId}
+// Fields:
+//   - userId: string (required) - Owner's UID
+//   - topic: string (required) - Topic of study
+//   - type: string (required) - 'summary', 'quiz', 'flashcards', 'pyq', or 'roadmap'
+//   - content: string (required) - The generated content
+//   - createdAt: timestamp (required) - Creation time
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email']) &&
+             data.uid is string && data.uid.size() > 0 &&
+             data.email is string && data.email.size() > 0;
+    }
+
+    function isValidStudyMaterial(data) {
+      return data.keys().hasAll(['userId', 'topic', 'type', 'content', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.topic is string && data.topic.size() > 0 && data.topic.size() < 500 &&
+             data.type in ['summary', 'quiz', 'flashcards', 'pyq', 'roadmap'] &&
+             data.content is string && data.content.size() > 0 && data.content.size() < 900000 &&
+             data.createdAt is timestamp;
+    }
+
+    // Rules for Users
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+    }
+
+    // Rules for Study Materials
+    match /study_materials/{materialId} {
+      allow read: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && isValidStudyMaterial(request.resource.data);
+      allow update: if isAuthenticated() && isDocOwner() && isValidStudyMaterial(request.resource.data);
+      allow delete: if isAuthenticated() && isDocOwner();
+    }
+  }
+}

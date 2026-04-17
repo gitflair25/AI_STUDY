@@ -1,0 +1,39 @@
+{
+  "entities": {
+    "StudyMaterial": {
+      "title": "Study Material",
+      "description": "Generated study content including summaries, concepts, and quizzes.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The ID of the user who owns this material." },
+        "topic": { "type": "string", "description": "The subject or topic of the study material." },
+        "type": { "type": "string", "enum": ["summary", "quiz", "flashcards", "pyq", "roadmap"], "description": "The type of material generated." },
+        "content": { "type": "string", "description": "The markdown content or JSON string of the material." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the material was created." }
+      },
+      "required": ["userId", "topic", "type", "content", "createdAt"]
+    },
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Basic information about the user.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" }
+      },
+      "required": ["uid", "email"]
+    }
+  },
+  "firestore": {
+    "/study_materials/{materialId}": {
+      "schema": "StudyMaterial",
+      "description": "Collection of all generated study materials."
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile data."
+    }
+  }
+}
